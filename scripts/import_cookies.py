@@ -1,5 +1,5 @@
-from config import IG_USERNAME
-from session_manager import save_cookies
+from app.config import IG_USERNAME
+from app.session_manager import save_cookies
 from urllib.parse import unquote
 
 

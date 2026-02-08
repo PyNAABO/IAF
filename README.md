@@ -63,7 +63,7 @@ The bot is configured to run automatically:
     ```
 4.  **Import Cookies** (Required for first run):
     ```bash
-    python import_cookies.py
+    python -m scripts.import_cookies
     ```
 5.  Run the bot:
     ```bash

@@ -4,7 +4,7 @@ import logging
 import time
 import random
 from datetime import datetime, timedelta
-from config import REDIS_URL
+from .config import REDIS_URL
 
 # Configure logging
 logging.basicConfig(
