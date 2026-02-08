@@ -74,6 +74,22 @@ python -m scripts.import_cookies
 python run.py
 ```
 
+### 6. Force Run (Bypass Schedule)
+
+To run the bot immediately regardless of the schedule (e.g., for testing), set `FORCE_RUN=true`:
+
+On Windows (PowerShell):
+
+```powershell
+$env:FORCE_RUN="true"; python run.py
+```
+
+On Linux/Mac:
+
+```bash
+FORCE_RUN=true python run.py
+```
+
 ## 🧩 Adding New Features
 
 The modular design makes it easy to add new automation logic:

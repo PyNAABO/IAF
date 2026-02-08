@@ -32,8 +32,11 @@ class IGMBot:
 
     def start(self, headless=True):
         """Initializes the browser and context."""
-        # Check Schedule first
-        if not check_schedule(self.username):
+        # Check for force run flag
+        force_run = os.getenv("FORCE_RUN", "false").lower() == "true"
+
+        # Check Schedule first (unless forced)
+        if not force_run and not check_schedule(self.username):
             logger.info("Schedule check failed (too early). Exiting.")
             return False
 

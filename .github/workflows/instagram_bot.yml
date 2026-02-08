@@ -30,6 +30,7 @@ jobs:
           IG_USERNAME: ${{ secrets.IG_USERNAME }}
           IG_PASSWORD: ${{ secrets.IG_PASSWORD }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
+          FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           python run.py
 
