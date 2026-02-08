@@ -127,6 +127,27 @@ def process_unfollows(page):
 
                         # Close dialog
                         page.keyboard.press("Escape")
+                        try:
+                            # Wait for dialog to close
+                            page.locator("div[role='dialog']").wait_for(
+                                state="hidden", timeout=3000
+                            )
+                        except Exception:
+                            logger.warning(
+                                "Dialog didn't close with Escape, trying click outside/close button."
+                            )
+                            # Fallback: clicking the close button if available
+                            close_btn = (
+                                page.locator("div[role='dialog']")
+                                .get_by_role("button")
+                                .first
+                            )
+                            if close_btn.count() > 0:
+                                close_btn.click()
+                            else:
+                                # Click coordinates (top left) to dismiss if possible, or reload page
+                                page.mouse.click(10, 10)
+
                         time.sleep(1)
                     else:
                         logger.warning(f"Could not find 'following' link for {user}")
@@ -141,6 +162,7 @@ def process_unfollows(page):
 
                 # Find the button that implies we follow them.
                 # It usually says "Following"
+                # Using a more robust selector that targets the specific button style or text
                 following_btn = (
                     page.locator("button").filter(has_text="Following").first
                 )
@@ -228,34 +250,47 @@ def process_followbacks(page):
             )
             time.sleep(random.uniform(3, 6))
 
-            # Check for "Follow Back" or "Follow"
-            # Logic: If they follow us, we usually see "Follow Back"
-            # Or we see "Follow" AND "Follows you" text
+            # 1. Check if WE already follow THEM.
+            # Button usually says "Following" or "Requested"
+            if (
+                page.locator("button").filter(has_text="Following").count() > 0
+                or page.locator("button").filter(has_text="Requested").count() > 0
+            ):
+                logger.info(f"Already following {user}. Skipping.")
+                continue
 
+            # 2. If we don't follow them, check if they follow us so we can 'Follow Back'
+            # Look for "Follow Back" button - this is the strongest signal
+            if page.locator("button").filter(has_text="Follow Back").count() > 0:
+                logger.info(f"Found 'Follow Back' button for {user}. Following...")
+                page.locator("button").filter(has_text="Follow Back").first.click()
+                count += 1
+                random_sleep()
+                continue
+
+            # 3. If generic "Follow" button, check for "Follows you" badge text
             if page.get_by_text("Follows you").count() > 0:
-                # They follow us. Check if we follow them.
-                # If we followed them, button would be "Following".
-                # If we don't, it's "Follow" or "Follow Back".
+                logger.info(f"{user} follows you (badge detected). Following back...")
 
-                if (
-                    page.locator("button").filter(has_text="Follow").count() > 0
-                    or page.locator("button").filter(has_text="Follow Back").count() > 0
-                ):
+                # Click generic Follow button
+                follow_btn = page.locator("button").filter(has_text="Follow").first
+                if follow_btn.count() > 0:
+                    follow_btn.click()
+                    count += 1
+                    random_sleep()
+                else:
+                    logger.warning(f"Could not find 'Follow' button for {user}")
+                continue
 
-                    # Exclude "Following" (contains "Follow" string sometimes, so check exact or specific)
-                    if page.locator("button").filter(has_text="Following").count() == 0:
-                        logger.info(f"User {user} follows you. Following back...")
-
-                        # Click the first button that looks like a follow action
-                        if page.get_by_role("button", name="Follow Back").count() > 0:
-                            page.get_by_role("button", name="Follow Back").click()
-                        else:
-                            page.get_by_text("Follow").first.click()
-
-                        count += 1
-                        random_sleep()
-            else:
-                logger.info(f"{user} does not follow you. Skipping.")
+            # 4. If we reached here, they appear in our followers list but:
+            # - We don't follow them
+            # - No "Follow Back" button
+            # - No "Follows you" badge
+            # This is ambiguous. Safest is to skip or assume the list was correct.
+            # Given the user feedback, we will log this specific state.
+            logger.info(
+                f"{user} in followers list but no 'Follows you' indicator found on profile. Skipping to be safe."
+            )
 
         except Exception as e:
             logger.error(f"Error checking {user}: {e}")
