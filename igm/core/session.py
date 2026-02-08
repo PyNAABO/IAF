@@ -1,10 +1,9 @@
 import redis
 import json
 import logging
-import time
 import random
 from datetime import datetime, timedelta
-from .config import REDIS_URL
+from .config import REDIS_URL, SCHEDULE_INTERVAL_MIN_HOURS, SCHEDULE_INTERVAL_MAX_HOURS
 
 # Configure logging
 logging.basicConfig(
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 def get_redis_client():
     """Connects to Redis using the URL from config."""
     if not REDIS_URL:
-        logger.warning("REDIS_URL not set. Session persistence disabled.")
+        # Warning already logged in main config or startup
         return None
     try:
         # Use decode_responses=True to get strings instead of bytes
@@ -89,7 +88,7 @@ def update_schedule(username):
     if not r:
         return
 
-    hours = random.uniform(2, 5)  # Balanced: 5-12 executions/day
+    hours = random.uniform(SCHEDULE_INTERVAL_MIN_HOURS, SCHEDULE_INTERVAL_MAX_HOURS)
     next_run = datetime.now() + timedelta(hours=hours)
     r.set(f"schedule:{username}:next_run", next_run.timestamp())
     logger.info(f"Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}")

@@ -1,5 +1,5 @@
-from app.config import IG_USERNAME
-from app.session_manager import save_cookies
+from igm.core.config import IG_USERNAME
+from igm.core.session import save_cookies
 from urllib.parse import unquote
 
 
@@ -69,7 +69,7 @@ def import_cookies():
     # Save to Redis using the new session manager
     if save_cookies(IG_USERNAME, cookies):
         print("Session cookies saved to Redis successfully (Playwright format)!")
-        print("Now run 'playwright install chromium' and then 'python main.py'.")
+        print("Now run 'playwright install chromium' and then 'python run.py'.")
     else:
         print("Failed to save cookies to Redis. Check your configuration.")
 

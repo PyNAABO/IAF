@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL")
 
-print(f"Testing Redis connection to: {REDIS_URL}")
+print(f"Testing Redis connection...")
 
 try:
     r = redis.from_url(REDIS_URL, decode_responses=True)

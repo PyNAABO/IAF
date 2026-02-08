@@ -1,85 +1,109 @@
-# Instagram Automation Bot
+# Instagram Automation Framework (IGM)
 
-This project automates Instagram interactions using GitHub Actions, with secure session persistence via Redis to avoid login bans.
+A modular, framework-style automation tool for Instagram interactions. Built with Python, Playwright, and Redis for high reliability and anti-detection.
 
-## Setup
+## 🚀 Key Features
+
+- **Modular Architecture**: Features are independent classes (Unfollow, Follow-back, etc.).
+- **Session Persistence**: Secure cookie storage in Redis to avoid repetitive logins and bans.
+- **Human-Like Behavior**: Random execution windows (2-5 hours), random action delays, and human-like scrolling/navigation.
+- **Smart Logic**: Visits profiles individually to verify "Following" status before acting.
+- **Extensible**: Easily add new features like Likers, Commenters, or DM automation.
+- **GitHub Actions Ready**: Designed to run on a schedule without user intervention.
+
+## 📂 Project Structure
+
+```text
+IGM/
+├── igm/                    # Core Package
+│   ├── core/               # System Logic
+│   │   ├── bot.py          # Central IGMBot Class
+│   │   ├── session.py      # Redis Session/Schedule Manager
+│   │   ├── config.py       # Environment Configuration
+│   │   └── utils.py        # Shared Utilities
+│   ├── features/           # Automation Modules
+│   │   ├── base.py         # Feature Base Class
+│   │   ├── follow.py       # Follow-back Logic
+│   │   ├── unfollow.py     # Unfollow Non-followers Logic
+│   │   ├── like.py         # [Placeholder]
+│   │   └── dm.py           # [Placeholder]
+│   └── __main__.py         # Package Entry Point
+├── scripts/                # Helper Tools
+│   ├── import_cookies.py   # Initial Login/Import Tool
+│   └── debug_redis.py      # Connectivity Tester
+├── run.py                  # Root Execution Script
+├── requirements.txt        # Production Dependencies
+└── README.md
+```
+
+## 🛠️ Setup & Installation
 
 ### 1. Prerequisites
 
-- **GitHub Account**: To host the repository and run Actions.
-- **Instagram Account**: Credentials for the bot.
-- **Redis Database**: Use [Upstash Redis](https://upstash.com/) (Free Tier) for session storage.
+- **Redis**: Use [Upstash](https://upstash.com/) for a free-tier managed Redis.
+- **Python 3.10+**
 
-### 2. GitHub Secrets
+### 2. Configuration
 
-Go to your repository **Settings** -> **Secrets and variables** -> **Actions** -> **New repository secret**.
+Create a `.env` file in the root directory:
 
-Add the following secrets:
-
-- `IG_USERNAME`: Your Instagram username.
-- `IG_PASSWORD`: Your Instagram password.
-- `REDIS_URL`: Your Redis connection string (e.g., `redis://default:password@endpoint:port`).
-
-### 3. Usage
-
-The bot is configured to run automatically:
-
-- **Frequent Check**: Runs every **30 minutes** (configurable in `.github/workflows/instagram_bot.yml`).
-- **Random Execution**: Acts like a human by only executing "real" actions every **2-5 hours** (randomly determined). If it wakes up too early, it checks the schedule and goes back to sleep.
-- **Manually**: Go to **Actions** tab -> **Instagram Automation Bot** -> **Run workflow**.
-
-## Features
-
-- **Session Persistence**: Uses Redis to store session cookies, preventing repeated logins and bans.
-- **Browser Automation (Playwright)**: Mimics a real user on a Chrome browser.
-- **Smart Unfollow**: Checks your "Following" list, visits profiles individually, and correctly unfollows users who don't follow you back.
-- **Smart Follow Back**: Checks your "Followers" list and follows back your fans.
-- **Human-Like Limits**: Executes up to **10 actions per run** to stay well under Instagram's rate limits.
-- **Anti-Detection**: Random sleep intervals between actions (10-30 seconds).
-- **Session Validation**: Automatically detects expired sessions and exits safely to prevent anti-bot triggers.
-
-## Security Features
-
-- ✅ **Redis Connection Timeouts**: 5-second timeouts prevent hanging connections
-- ✅ **Safe Defaults**: Bot won't run if Redis is unavailable (prevents rate-limit violations)
-- ✅ **Session Validation**: Checks for valid login before any actions
-- ✅ **Race Condition Protection**: Waits for modals to appear before clicking
-- ✅ **Input Validation**: Validates sessionid format during cookie import
-- ✅ **Timestamped Error Logs**: Error screenshots include timestamps for debugging
-
-## Local Development
-
-1.  Clone the repository.
-2.  Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    python -m playwright install chromium
-    ```
-3.  Create a `.env` file based on `config.py`:
-    ```ini
-    IG_USERNAME=your_username
-    IG_PASSWORD=your_password
-    REDIS_URL=redis://...
-    ```
-4.  **Import Cookies** (Required for first run):
-    ```bash
-    python -m scripts.import_cookies
-    ```
-5.  Run the bot:
-    ```bash
-    python main.py
-    ```
-
-> **Note**: If Redis is unavailable, the bot will skip execution by default for safety. Ensure your Redis connection is working for automation to proceed.
-
-## Customization
-
-Edit `main.py` to add your custom automation logic inside the `try/except` block at the end of the `main()` function.
-
-## Development Dependencies
-
-For testing and development, install additional dependencies:
-
-```bash
-pip install -r requirements-dev.txt
+```ssh
+IG_USERNAME=your_username
+IG_PASSWORD=your_password
+REDIS_URL=redis://default:password@endpoint:port
 ```
+
+### 3. Installation
+
+```powershell
+pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+### 4. Initial Run (Crucial)
+
+You must import your session cookies from a logged-in browser once to avoid hitting the login wall:
+
+```powershell
+python -m scripts.import_cookies
+```
+
+### 5. Start the Bot
+
+```powershell
+python run.py
+```
+
+## 🧩 Adding New Features
+
+The modular design makes it easy to add new automation logic:
+
+1. Create a new file in `igm/features/`, e.g., `like_hashtags.py`.
+2. Inherit from `BaseFeature`:
+
+   ```python
+   from .base import BaseFeature
+
+   class LikeHashtagsFeature(BaseFeature):
+       def run(self):
+           self.page.goto("https://www.instagram.com/explore/tags/coding/")
+           # Your logic here...
+   ```
+
+3. Register it in `igm/__main__.py` or call it from `run.py`.
+
+## 🛡️ Anti-Detection Measures
+
+- **User Agent**: Mimics a standard Windows Chrome 120 browser.
+- **Random Breaks**: The bot sleeps between 10-30 seconds between actions.
+- **Gap Schedules**: Bot only executes "real" cycles every 2-5 hours.
+- **Session Re-use**: Avoids logging in from scratch, which is the #1 trigger for account flags.
+
+## 🤝 Customization
+
+- To change the frequency of runs, edit `igm/core/session.py` -> `update_schedule`.
+- To adjust navigation timeouts, edit `igm/core/config.py`.
+
+---
+
+_Disclaimer: Use this tool responsibly. Automation against Instagram's TOS can lead to account suspension._
