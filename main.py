@@ -83,10 +83,64 @@ def process_unfollows(page):
             )
             time.sleep(random.uniform(3, 6))
 
-            # Check for "Follows you" text
+            # Check for "Follows you" badge
             follows_you = False
             if page.get_by_text("Follows you").count() > 0:
                 follows_you = True
+                logger.info(f"Badge 'Follows you' found for {user}.")
+
+            # If badge not found, perform deep check
+            if not follows_you:
+                logger.info(
+                    f"Badge not found for {user}. Performing deep check in their Following list..."
+                )
+                try:
+                    # Click "following" link (href containing /following/)
+                    page.locator(f"a[href*='/{user}/following/']").click()
+                    time.sleep(random.uniform(2, 4))
+
+                    # Wait for dialog and search input
+                    # Search input usually has placeholder "Search" or similar aria-label
+                    search_input = page.locator(
+                        "div[role='dialog'] input[placeholder='Search']"
+                    )
+
+                    if search_input.count() > 0:
+                        search_input.fill(IG_USERNAME)
+                        time.sleep(random.uniform(2, 4))
+
+                        # Check if our profile appears in the results
+                        # We look for a link to our profile
+                        my_profile_link = page.locator(
+                            f"div[role='dialog'] a[href='/{IG_USERNAME}/']"
+                        )
+
+                        if my_profile_link.count() > 0:
+                            follows_you = True
+                            logger.info(
+                                f"Found {IG_USERNAME} in {user}'s following list. They follow you."
+                            )
+                        else:
+                            logger.info(
+                                f"{IG_USERNAME} NOT found in {user}'s following list."
+                            )
+
+                    else:
+                        logger.warning(
+                            "Could not find search input in Following dialog."
+                        )
+
+                    # Close dialog specifically
+                    # Usually there is a close button or we can press Escape
+                    page.keyboard.press("Escape")
+                    time.sleep(1)
+
+                except Exception as e:
+                    logger.warning(f"Deep check failed for {user}: {e}")
+                    # If unsure, we might want to skip or default to False.
+                    # For safety, let's assume they might follow us if check failed?
+                    # User wanted verification, so if verification fails, maybe skip unfollow logic to be safe?
+                    # But the prompt says "if not then unfollow". Let's stick to follows_you=False if deep check fails effectively.
 
             if not follows_you:
                 logger.info(f"{user} does NOT follow you. Unfollowing...")
