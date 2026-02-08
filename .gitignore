@@ -1,5 +1,31 @@
+# General
+.DS_Store
+Thumbs.db
+
+# Environments
 .env
-__pycache__/
-*.pyc
+.venv
 venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+
+# Project specific
+
+screenshots/
 *.png
+*.log
