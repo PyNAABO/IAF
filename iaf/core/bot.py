@@ -81,13 +81,16 @@ class IAFBot:
 
             time.sleep(5)
 
-            # Critical: Validate session before any actions
-            if self.page.locator("input[name='username']").count() > 0:
+            page_url = self.page.url
+            logger.info(f"Current page URL: {page_url}")
+
+            if "login" in page_url.lower() or self.page.locator("input[name='username']").count() > 0:
                 logger.error(
-                    "CRITICAL: Login form detected. Session invalid or expired."
+                    "CRITICAL: Redirected to login page. Session invalid or expired."
                 )
-                logger.error("Please run: python -m scripts.import_cookies")
+                logger.error("Please re-import cookies using: python -m scripts.import_cookies")
                 self.screenshot("error_session_invalid")
+                self.save_html("error_session_invalid")
                 self.close()
                 sys.exit(1)
 
@@ -97,6 +100,7 @@ class IAFBot:
         except Exception as e:
             logger.error(f"Error during login/navigation: {e}")
             self.screenshot("error_login")
+            self.save_html("error_login")
             return False
 
     def run_feature(self, feature_class):
@@ -109,6 +113,19 @@ class IAFBot:
         except Exception as e:
             logger.error(f"Error executing feature {feature_name}: {e}")
             self.screenshot(f"error_feature_{feature_name}")
+            self.save_html(f"error_feature_{feature_name}")
+
+    def save_html(self, name):
+        """Saves page HTML for debugging."""
+        filename = f"screenshots/{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        if self.page:
+            try:
+                html = self.page.content()
+                with open(filename, "w", encoding="utf-8") as f:
+                    f.write(html)
+                logger.info(f"HTML saved: {filename}")
+            except Exception as e:
+                logger.error(f"Failed to save HTML: {e}")
 
     def screenshot(self, name):
         """Takes a timestamped screenshot."""

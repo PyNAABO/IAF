@@ -36,32 +36,83 @@ class UnfollowFeature(BaseFeature):
         )
         time.sleep(5)
 
-        try:
-            following_selectors = [
-                f"a[href='/{username}/following/']",
-                f"a[href='/{username}/following']",
-                "//a[contains(@href, '/following/')]",
-                "//a[contains(., 'following')]",
-                ". following",
-            ]
-            clicked = False
-            for selector in following_selectors:
-                try:
-                    if self.page.locator(selector).first.is_visible(timeout=5000):
-                        self.page.locator(selector).first.click()
-                        clicked = True
-                        break
-                except:
-                    continue
-            if not clicked:
-                self.logger.warning("Could not find following link")
-                return
-            self.page.wait_for_selector("div[role='dialog']", timeout=TIMEOUT_MODAL)
-        except Exception as e:
-            self.logger.warning(f"Could not open 'Following' dialog: {e}")
+        self.bot.save_html("debug_unfollow_profile")
+
+        header_selectors = [
+            "header",
+            "._aa_c",
+            "[role='navigation']",
+            "._aa_d",
+        ]
+
+        header_found = False
+        for selector in header_selectors:
+            try:
+                if self.page.locator(selector).first.is_visible(timeout=10000):
+                    self.logger.info(f"Found header with selector: {selector}")
+                    header_found = True
+                    break
+            except:
+                continue
+
+        if not header_found:
+            self.logger.warning("Could not find profile header")
+            self.bot.save_html("debug_unfollow_no_header")
             return
 
-        time.sleep(3)
+        all_links = self.page.locator("a[href*='followers'], a[href*='following']").all()
+        self.logger.info(f"Found {len(all_links)} links with followers/following in href")
+
+        if len(all_links) == 0:
+            self.logger.warning("No followers/following links found with href pattern")
+            self.logger.info("Dumping all links on page for debugging:")
+            all_page_links = self.page.locator("a").all()
+            self.logger.info(f"Total links on page: {len(all_page_links)}")
+            for i, link in enumerate(all_page_links[:20]):
+                try:
+                    href = link.get_attribute("href")
+                    text = link.text_content() or ""
+                    self.logger.info(f"  Link {i}: href={href[:80] if href else None}, text={text[:30]}")
+                except:
+                    pass
+            self.bot.save_html("debug_unfollow_no_links")
+            return
+
+        self.logger.info("Following link not found with href pattern, trying text-based selectors")
+
+        text_selectors = [
+            f"a:has-text('{username}')",
+            "//a[contains(., 'following')]",
+            "//span[contains(., 'following')]",
+            "//div[contains(., 'following')]",
+            "//button[contains(., 'following')]",
+        ]
+
+        clicked = False
+        for selector in text_selectors:
+            try:
+                elements = self.page.locator(selector).all()
+                for elem in elements:
+                    try:
+                        text = elem.text_content() or ""
+                        if "following" in text.lower() and elem.is_visible(timeout=3000):
+                            self.logger.info(f"Clicking element with text: {text[:50]}")
+                            elem.click()
+                            clicked = True
+                            break
+                    except:
+                        continue
+                if clicked:
+                    break
+            except:
+                continue
+
+        if not clicked:
+            self.logger.warning("Could not find following link using any method")
+            self.bot.save_html("debug_unfollow_no_clickable")
+            return
+
+        self.page.wait_for_selector("div[role='dialog']", timeout=TIMEOUT_MODAL)
 
         targets = self.collect_unprocessed_users(username, "unfollow", actions_per_run)
         self.logger.info(f"Found {len(targets)} users to check.")
