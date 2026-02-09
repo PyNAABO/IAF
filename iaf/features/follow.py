@@ -31,12 +31,30 @@ class FollowFeature(BaseFeature):
         self.logger.info("Checking 'Followers' list for fans...")
 
         self.page.goto(
-            f"https://www.instagram.com/{username}/", wait_until="domcontentloaded"
+            f"https://www.instagram.com/{username}/", wait_until="networkidle"
         )
-        time.sleep(3)
+        time.sleep(5)
 
         try:
-            self.page.locator(f"a[href='/{username}/followers/']").click()
+            followers_selectors = [
+                f"a[href='/{username}/followers/']",
+                f"a[href='/{username}/followers']",
+                "//a[contains(@href, '/followers/')]",
+                "//a[contains(., 'followers')]",
+                ". followers",
+            ]
+            clicked = False
+            for selector in followers_selectors:
+                try:
+                    if self.page.locator(selector).first.is_visible(timeout=5000):
+                        self.page.locator(selector).first.click()
+                        clicked = True
+                        break
+                except:
+                    continue
+            if not clicked:
+                self.logger.warning("Could not find followers link")
+                return
             self.page.wait_for_selector("div[role='dialog']", timeout=TIMEOUT_MODAL)
         except Exception as e:
             self.logger.warning(f"Could not open 'Followers' dialog: {e}")

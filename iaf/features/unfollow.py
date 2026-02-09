@@ -32,12 +32,30 @@ class UnfollowFeature(BaseFeature):
         self.logger.info("Checking 'Following' list for non-followers...")
 
         self.page.goto(
-            f"https://www.instagram.com/{username}/", wait_until="domcontentloaded"
+            f"https://www.instagram.com/{username}/", wait_until="networkidle"
         )
-        time.sleep(3)
+        time.sleep(5)
 
         try:
-            self.page.locator(f"a[href='/{username}/following/']").click()
+            following_selectors = [
+                f"a[href='/{username}/following/']",
+                f"a[href='/{username}/following']",
+                "//a[contains(@href, '/following/')]",
+                "//a[contains(., 'following')]",
+                ". following",
+            ]
+            clicked = False
+            for selector in following_selectors:
+                try:
+                    if self.page.locator(selector).first.is_visible(timeout=5000):
+                        self.page.locator(selector).first.click()
+                        clicked = True
+                        break
+                except:
+                    continue
+            if not clicked:
+                self.logger.warning("Could not find following link")
+                return
             self.page.wait_for_selector("div[role='dialog']", timeout=TIMEOUT_MODAL)
         except Exception as e:
             self.logger.warning(f"Could not open 'Following' dialog: {e}")

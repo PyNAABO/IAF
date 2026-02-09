@@ -18,9 +18,10 @@ if not IG_USERNAME:
     raise ValueError("IG_USERNAME must be set in .env file.")
 
 # Timeouts (in milliseconds)
-TIMEOUT_NAVIGATION = 60000
-TIMEOUT_MODAL = 10000
-TIMEOUT_ACTION = 5000
+TIMEOUT_NAVIGATION = 90000
+TIMEOUT_MODAL = 45000
+TIMEOUT_ACTION = 10000
+TIMEOUT_HEADER = 10000
 
 # Conservative Limits (Anti-Ban Priority)
 PROCESSED_USER_EXPIRY_DAYS = 28
@@ -80,8 +81,8 @@ def parse_count(text):
 def get_counts_from_page(page, username):
     """Extract follower and following counts from profile page."""
     try:
-        page.goto(f"https://www.instagram.com/{username}/", wait_until="domcontentloaded")
-        page.wait_for_timeout(3000)
+        page.goto(f"https://www.instagram.com/{username}/", wait_until="networkidle")
+        page.wait_for_timeout(5000)
     except Exception:
         return None, None
 
@@ -94,7 +95,7 @@ def get_counts_from_page(page, username):
     following = 0
 
     try:
-        page.wait_for_selector("header", timeout=5000)
+        page.wait_for_selector("header", timeout=TIMEOUT_HEADER)
         
         header_links = page.locator("header a").all()
         for link in header_links:
