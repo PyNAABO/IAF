@@ -13,12 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Smart scrolling to collect target users before processing
 - Conservative anti-ban mode (28 actions/day max)
 - Adaptive delays (30-60s between actions)
+- Time blackout (10PM-5AM no runs)
+- Random schedule variance (avoids predictable timing)
+- Smart scheduling: extends wait time when all users checked
 
 ### Changed
 - Actions per run now dynamic (scales with account size)
-- Schedule interval adjusted to 3-6 hours for safety
+- Schedule interval adjusted to 3-6 hours with ±30% variance
 - Max daily actions capped at 28 (conservative)
 - 28-day expiry ensures fresh data while maintaining coverage
+- Optimized completion time based on account size
 
 ### Fixed
 - Session import now accepts URL-encoded sessionids

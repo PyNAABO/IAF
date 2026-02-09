@@ -6,7 +6,8 @@ A modular, framework-style automation tool for Instagram interactions. Built wit
 
 - **Modular Architecture**: Features are independent classes (Unfollow, Follow-back, etc.).
 - **Session Persistence**: Secure cookie storage in Redis to avoid repetitive logins and bans.
-- **Human-Like Behavior**: Random execution windows (2-5 hours), random action delays, and human-like scrolling/navigation.
+- **Smart Scheduling**: Adapts to account size, avoids 10PM-5AM, random timing.
+- **Human-Like Behavior**: 30-60s delays, 3-6 hour gaps with ±30% variance.
 - **Smart Logic**: Visits profiles individually to verify "Following" status before acting.
 - **Extensible**: Easily add new features like Likers, Commenters, or DM automation.
 - **GitHub Actions Ready**: Designed to run on a schedule without user intervention.
@@ -131,9 +132,12 @@ This prevents the "Groundhog Day" problem where the bot would endlessly check th
 
 - **User Agent**: Mimics a standard Windows Chrome 120 browser.
 - **Random Breaks**: The bot sleeps between 30-60 seconds between actions.
-- **Gap Schedules**: Bot only executes "real" cycles every 3-6 hours.
+- **Gap Schedules**: Bot only executes cycles every 3-6 hours with ±30% variance.
+- **Time Blackout**: No runs during 10PM-5AM (system time).
 - **Daily Limits**: Max 28 actions per day to avoid triggering Instagram's limits.
+- **Smart Scheduling**: Extends wait time when all users already checked.
 - **Session Re-use**: Avoids logging in from scratch, which is the #1 trigger for account flags.
+- **Unpredictable Timing**: Random variance prevents same-time-everyday patterns.
 
 ## 🤝 Customization
 

@@ -8,8 +8,9 @@ from iaf.core.config import (
     MIN_DELAY_BETWEEN_ACTIONS,
     MAX_DELAY_BETWEEN_ACTIONS,
     PROCESSED_USER_EXPIRY_DAYS,
+    calculate_optimal_days_to_complete,
 )
-from iaf.core.session import filter_unprocessed_users, mark_user_processed, is_user_processed
+from iaf.core.session import filter_unprocessed_users, mark_user_processed, is_user_processed, update_schedule, get_processed_count
 
 
 class FollowFeature(BaseFeature):
@@ -17,16 +18,15 @@ class FollowFeature(BaseFeature):
         """Follows users back (Fans)."""
         username = self.bot.username
 
-        # Get follower count for dynamic calculations
         follower_count, _ = get_counts_from_page(self.page, username)
         if follower_count:
             self.logger.info(f"Account has {follower_count} followers.")
         else:
             self.logger.warning("Could not retrieve follower count.")
 
-        # Calculate safe actions per run based on account size
         actions_per_run = calculate_actions_per_run(follower_count, 0, "follow")
-        self.logger.info(f"Targeting {actions_per_run} actions per run (complete in ~{PROCESSED_USER_EXPIRY_DAYS} days).")
+        optimal_days = calculate_optimal_days_to_complete(follower_count, "follow")
+        self.logger.info(f"Targeting {actions_per_run} actions per run (complete in ~{optimal_days} days).")
 
         self.logger.info("Checking 'Followers' list for fans...")
 
@@ -44,7 +44,6 @@ class FollowFeature(BaseFeature):
 
         time.sleep(3)
 
-        # Collect usernames by scrolling until we have enough unprocessed users
         targets = self.collect_unprocessed_users(username, "follow", actions_per_run)
         self.logger.info(f"Found {len(targets)} fans to check.")
 
@@ -57,17 +56,18 @@ class FollowFeature(BaseFeature):
             try:
                 if self.process_single_user(user):
                     count += 1
-                # Mark as processed regardless of outcome
                 mark_user_processed(username, user, "follow")
             except Exception as e:
                 self.logger.error(f"Error checking {user}: {e}")
-                # Still mark as processed to avoid retrying failed users
                 mark_user_processed(username, user, "follow")
 
-            # Conservative delay between actions
             time.sleep(random.uniform(MIN_DELAY_BETWEEN_ACTIONS, MAX_DELAY_BETWEEN_ACTIONS))
 
         self.logger.info(f"Followed back {count} users.")
+
+        # Update schedule based on whether all users were checked
+        all_checked = len(targets) < actions_per_run
+        update_schedule(username, all_users_checked=all_checked)
 
     def process_single_user(self, user):
         self.page.goto(

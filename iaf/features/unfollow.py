@@ -9,8 +9,9 @@ from iaf.core.config import (
     MIN_DELAY_BETWEEN_ACTIONS,
     MAX_DELAY_BETWEEN_ACTIONS,
     PROCESSED_USER_EXPIRY_DAYS,
+    calculate_optimal_days_to_complete,
 )
-from iaf.core.session import filter_unprocessed_users, mark_user_processed, is_user_processed
+from iaf.core.session import filter_unprocessed_users, mark_user_processed, is_user_processed, update_schedule
 
 
 class UnfollowFeature(BaseFeature):
@@ -18,26 +19,23 @@ class UnfollowFeature(BaseFeature):
         """Unfollows users who don't follow back."""
         username = self.bot.username
 
-        # Get following count for dynamic calculations
         _, following_count = get_counts_from_page(self.page, username)
         if following_count:
             self.logger.info(f"Account is following {following_count} users.")
         else:
             self.logger.warning("Could not retrieve following count.")
 
-        # Calculate safe actions per run based on account size
         actions_per_run = calculate_actions_per_run(0, following_count, "unfollow")
-        self.logger.info(f"Targeting {actions_per_run} actions per run (complete in ~{PROCESSED_USER_EXPIRY_DAYS} days).")
+        optimal_days = calculate_optimal_days_to_complete(following_count, "unfollow")
+        self.logger.info(f"Targeting {actions_per_run} actions per run (complete in ~{optimal_days} days).")
 
         self.logger.info("Checking 'Following' list for non-followers...")
 
-        # Go to profile
         self.page.goto(
             f"https://www.instagram.com/{username}/", wait_until="domcontentloaded"
         )
         time.sleep(3)
 
-        # Open Following modal
         try:
             self.page.locator(f"a[href='/{username}/following/']").click()
             self.page.wait_for_selector("div[role='dialog']", timeout=TIMEOUT_MODAL)
@@ -47,7 +45,6 @@ class UnfollowFeature(BaseFeature):
 
         time.sleep(3)
 
-        # Collect usernames by scrolling until we have enough unprocessed users
         targets = self.collect_unprocessed_users(username, "unfollow", actions_per_run)
         self.logger.info(f"Found {len(targets)} users to check.")
 
@@ -60,17 +57,17 @@ class UnfollowFeature(BaseFeature):
             try:
                 if self.process_single_user(user):
                     count += 1
-                # Mark as processed regardless of outcome
                 mark_user_processed(username, user, "unfollow")
             except Exception as e:
                 self.logger.error(f"Error checking {user}: {e}")
-                # Still mark as processed to avoid retrying failed users
                 mark_user_processed(username, user, "unfollow")
 
-            # Conservative delay between actions
             time.sleep(random.uniform(MIN_DELAY_BETWEEN_ACTIONS, MAX_DELAY_BETWEEN_ACTIONS))
 
         self.logger.info(f"Unfollow cycle verify complete.")
+
+        all_checked = len(targets) < actions_per_run
+        update_schedule(username, all_users_checked=all_checked)
 
     def process_single_user(self, user):
         # We need to navigate to user profile
